@@ -115,13 +115,10 @@ if __name__ == "__main__":
     traffic_stream = traffic_stream.withWatermark("t_start", "10 minutes")
     traffic_stream = traffic_stream.withColumn("t_minute", (col("t_start").cast("long") / 60).cast("long"))
 
-    # --- Join streams by time (equality on minute + range check) ---
+    # --- Join streams by time (minute) ---
     joined_stream = traffic_stream.join(
         weather_stream,
-        expr("""
-            t_minute = w_minute AND
-            t_start BETWEEN w_timestamp - interval 1 minutes AND w_timestamp + interval 1 minutes
-        """),
+        expr("t_minute = w_minute"),
         how="leftOuter"
     )
     sliding_window = joined_stream.groupBy(window("t_start", "30 minutes", "10 minutes"), col("weather_desc")).count()
