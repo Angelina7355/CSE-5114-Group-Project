@@ -11,7 +11,6 @@ import json
 
 load_dotenv()
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-HERE_API_KEY = os.getenv("HERE_API_KEY")
 TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY")
 
 
@@ -53,53 +52,6 @@ def fetching_weather():
         "ingestion_time": datetime.now(UTC).isoformat()
     }
 
-# below is the old HERE API code, which we switched to TomTom for better data quality and more flexible bounding box queries
-
-# def fetching_incidents():
-#     """
-#     Fetch ACTIVE traffic incidents from HERE API.
-#     API returns ALL active incidents (including old ones).
-#     """
-#     bbox = "-90.3,38.5,-90.0,38.8"
-
-#     url = (
-#         f"https://data.traffic.hereapi.com/v7/incidents?"
-#         f"in=bbox:{bbox}&locationReferencing=shape&apiKey={HERE_API_KEY}"
-#     )
-
-#     response = requests.get(url)
-
-#     if response.status_code != 200:
-#         raise Exception(f"Traffic API failed: {response.status_code}")
-
-#     data = response.json()
-#     cleaned = []
-
-#     for item in data.get("results", []):
-#         details = item.get("incidentDetails", {})
-#         location = item.get("location", {})
-
-#         links = location.get("shape", {}).get("links", [])
-#         if links and links[0].get("points"):
-#             point = links[0]["points"][0]
-#             lat = point.get("lat")
-#             lon = point.get("lng")
-#         else:
-#             continue  # skip if no coordinates
-
-#         cleaned.append({
-#             "source": "traffic",
-#             "id": details.get("id"),
-#             "type": details.get("type"),
-#             "severity": details.get("criticality"),
-#             "description": details.get("description", {}).get("value"),
-#             "start_time": details.get("startTime"),  # true event time
-#             "lat": lat,
-#             "lon": lon,
-#             "ingestion_time": datetime.now(UTC).isoformat()
-#         })
-
-#     return cleaned
 
 def fetching_incidents():
     """
