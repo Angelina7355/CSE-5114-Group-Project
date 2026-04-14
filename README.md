@@ -1,3 +1,5 @@
+<h1>Real-Time Weather and Traffic Data Integration and Analysis</h1>
+
 If you are running the pipeline for the first time (if not, refer to the "how to run" instructions below these):
 ----------------------------------------------------------------------------------------
 1. clone the repository<br>
