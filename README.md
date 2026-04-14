@@ -39,7 +39,7 @@ HOW TO RUN (MAC):
 3. (Terminal 1) Run:<br>python3 api_ingestion.py
 4. (Terminal 2) Run<br>
 source venv/bin/activate<br>
-rm -rf /tmp/spark_checkpoint<br>
+sudo rm -rf /tmp/spark_checkpoint<br>
 python3 spark_streaming.py<br>
 <br>
 
