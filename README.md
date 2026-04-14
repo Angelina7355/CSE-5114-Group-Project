@@ -22,9 +22,9 @@ HOW TO RUN (WINDOWS):
 ----------------------------------------------------------------------------------------
 1. cd into project folder
 2. Run:<br>docker-compose up -d
-3. (Terminal 1) Run:<br>
+3. (Terminal 1) Open a powershell terminal and run:<br>
     python .\api_ingestion.py 
-4. (Terminal 2) Run:<br>
+4. (Terminal 2) Open powershell in administrator mode and run:<br>
     venv\Scripts\Activate.ps1<br>
     $env:HADOOP_HOME="C:\hadoop"<br>
     $env:PATH="$env:HADOOP_HOME\bin;$env:PATH"<br>
