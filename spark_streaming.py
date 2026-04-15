@@ -172,7 +172,12 @@ if __name__ == "__main__":
     "t_id",
     "t_start",
     "weather_desc"
-)
+    )
+
+    weather_count = weather_stream.select(
+        "w_timestamp",
+        "weather_desc"
+    ).dropDuplicates(["w_timestamp"])
 
 
     #------------------------------------------------------#
@@ -183,13 +188,12 @@ if __name__ == "__main__":
 
     sf_options = {
         "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
-        "sfUser": "SWAN",
-        "sfDatabase": "SWAN_DB",
-        "sfSchema": "SWAN_SCHEMA",
-        "sfWarehouse": "SWAN_WH",
+        "sfUser": "JELLYFISH",
+        "sfDatabase": "JELLYFISH_DB",
+        "sfSchema": "JELLYFISH_SCHEMA",
+        "sfWarehouse": "JELLYFISH_WH",
         "pem_private_key": pkb_string
     }
-
 
     #------------------------------------------------------#
     #               Write to Snowflake                     #
@@ -206,6 +210,17 @@ if __name__ == "__main__":
             .mode("append") \
             .save()
 
+    def write_weather_duration(df, epoch_id):
+        """
+        Track duration per unique weather condition.
+        """
+        df.write \
+            .format("net.snowflake.spark.snowflake") \
+            .options(**sf_options) \
+            .option("dbtable", "weather_duration") \
+            .mode("append") \
+            .save()
+
 
     query = result.writeStream \
         .foreachBatch(write_to_snowflake) \
@@ -213,4 +228,11 @@ if __name__ == "__main__":
         .option("checkpointLocation", "/tmp/spark_checkpoint") \
         .start()
 
+    weather_query = weather_count.writeStream \
+        .foreachBatch(write_weather_duration) \
+        .outputMode("append") \
+        .option("checkpointLocation", "/tmp/spark_checkpoint_weather") \
+        .start()
+
     query.awaitTermination()
+    weather_query.awaitTermination()

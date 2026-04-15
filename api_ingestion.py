@@ -96,6 +96,9 @@ def fetching_incidents():
         props = item.get("properties", {})
         geometry = item.get("geometry", {})
 
+        # if props.get("iconCategory") != 1:
+        #     continue
+
         coords = geometry.get("coordinates", [])
         if not coords:
             continue
