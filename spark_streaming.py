@@ -128,6 +128,7 @@ if __name__ == "__main__":
         from_json(col("value").cast("string"), weather_schema).alias("data")
     ).select(
         from_unixtime(col("data.timestamp")).cast("timestamp").alias("w_timestamp"),
+        to_timestamp(col("data.ingestion_time")).alias("w_event_time"),
         col("data.weather").alias("weather_desc")
     ).withWatermark("w_timestamp", "10 minutes")
 
@@ -140,21 +141,22 @@ if __name__ == "__main__":
         from_json(col("value").cast("string"), traffic_schema).alias("data")
     ).select(
         col("data.id").alias("t_id"),
-        to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start")
+        to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start"),
+        to_timestamp(col("data.ingestion_time")).alias("t_event_time")
     )
 
+    # Filter using ingestion time, not incident start time
     traffic_stream = traffic_stream.filter(
-        col("t_start") >= program_start_time
+        col("t_event_time") >= program_start_time
     )
-
+    
     traffic_stream = traffic_stream \
-        .withWatermark("t_start", "10 minutes") \
+        .withWatermark("t_event_time", "10 minutes") \
         .dropDuplicates(["t_id", "t_start"])
 
     traffic_stream = traffic_stream.withColumn(
-        "t_minute", (col("t_start").cast("long") / 60).cast("long")
+        "t_minute", (col("t_event_time").cast("long") / 60).cast("long")
     )
-
 
     #------------------------------------------------------#
     #                 Join Streams                         #
@@ -164,13 +166,13 @@ if __name__ == "__main__":
         weather_stream,
         expr("""
             t_minute = w_minute AND
-            t_start BETWEEN w_timestamp - interval 5 minutes 
-            AND w_timestamp + interval 5 minutes
+            t_event_time BETWEEN w_event_time - interval 5 minutes
+            AND w_event_time + interval 5 minutes
         """),
         how="leftOuter"
     )
 
-    joined_stream = joined_stream.dropDuplicates(["t_id", "t_start"])
+    joined_stream = joined_stream.dropDuplicates(["t_id", "t_event_time"])
 
     result = joined_stream.select(
     "t_id",
