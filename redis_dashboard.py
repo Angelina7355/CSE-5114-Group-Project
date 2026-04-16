@@ -29,7 +29,7 @@ def load_from_redis():
     return incidents_df, counts_df, last_update, None
 
 
-st.title("Live Weather and Traffic Incidents in Saint Louis")
+st.title("Live Weather and Traffic Incidents in St. Louis, MO")
 st.write("Displays traffic incidents based on weather in near real time.")
 st_autorefresh(interval=2000, key="redis_auto_refresh")
 st.caption("Auto-refreshing every 2 seconds for live updates.")
