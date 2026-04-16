@@ -184,14 +184,30 @@ if __name__ == "__main__":
     #               Snowflake Configuration                #
     #------------------------------------------------------#
 
-    pkb_string = get_private_key_string("rsa_key.p8")
+    
 
+    # ----- David's Credentials -----
+    # pkb_string = get_private_key_string("rsa_key.p8")
+    
+    # sf_options = {
+    #     "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
+    #     "sfUser": "JELLYFISH",
+    #     "sfDatabase": "JELLYFISH_DB",
+    #     "sfSchema": "JELLYFISH_SCHEMA",
+    #     "sfWarehouse": "JELLYFISH_WH",
+    #     "pem_private_key": pkb_string
+    # }
+    
+    # ----- Angelina's Credentials -----
+    pkb_string = get_private_key_string("rsa_key.p8", password="Kaylee7355!")
+    
     sf_options = {
         "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
-        "sfUser": "JELLYFISH",
-        "sfDatabase": "JELLYFISH_DB",
-        "sfSchema": "JELLYFISH_SCHEMA",
-        "sfWarehouse": "JELLYFISH_WH",
+        "sfUser": "PIGEON",
+        "sfDatabase": "PIGEON_DB",
+        "sfSchema": "MY_SCHEMA",
+        "sfWarehouse": "PIGEON_WH",
+        "sfRole": "TRAINING_ROLE",
         "pem_private_key": pkb_string
     }
 

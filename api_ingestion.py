@@ -40,6 +40,7 @@ def fetching_weather():
     data = response.json()
     current = data.get("current", {})
 
+    # Weather JSON record
     return {
         "source": "weather",
         "timestamp": current.get("dt"), 
@@ -105,6 +106,7 @@ def fetching_incidents():
 
         lon_val, lat_val = coords[0]
 
+        # Traffic JSON record
         cleaned.append({
             "source": "traffic",
             "id": props.get("id"),
@@ -137,6 +139,7 @@ def on_send_error(excp):
 
 if __name__ == "__main__":
 
+    # kafka producer
     producer = KafkaProducer(
         bootstrap_servers='localhost:9092',
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
