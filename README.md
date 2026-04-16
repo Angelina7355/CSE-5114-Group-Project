@@ -69,3 +69,18 @@ TRUNCATE TABLE weather_traffic_comb;<br>
 <br>
 then just rerun!
 
+----------------------------------------------------------------------------------------
+Add these environment variables to your .env file (use your own Snowflake values):
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+SNOWFLAKE_ACCOUNT=your_account_identifier
+SNOWFLAKE_USER=your_username
+SNOWFLAKE_PRIVATE_KEY_PATH=rsa_key.p8
+SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=your_private_key_passphrase_or_leave_blank
+SNOWFLAKE_WAREHOUSE=your_warehouse
+SNOWFLAKE_DATABASE=your_database
+SNOWFLAKE_SCHEMA=your_schema
+SNOWFLAKE_ROLE=your_role
+
