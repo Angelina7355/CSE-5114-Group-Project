@@ -265,17 +265,24 @@ if __name__ == "__main__":
         Writes each micro-batch to Snowflake using private key auth.
         """
         if df.rdd.isEmpty():
+            print(f"[Epoch {epoch_id}] joined batch empty")
             return
-    
-        df.write \
-            .format("net.snowflake.spark.snowflake") \
-            .options(**sf_options) \
-            .option("dbtable", "weather_traffic_comb") \
-            .mode("append") \
-            .save()
-            
-        # Also push same batch to Redis for live dashboard
+        
+        batch_rows = df.count()
+        print(f"[Epoch {epoch_id}] joined rows: {batch_rows}")
+
+        # Update Redis first for live dashboard responsiveness
         write_dashboard_cache(df)
+
+        try:
+            df.write \
+                .format("net.snowflake.spark.snowflake") \
+                .options(**sf_options) \
+                .option("dbtable", "weather_traffic_comb") \
+                .mode("append") \
+                .save()
+        except Exception as e:
+            print(f"[Epoch {epoch_id}] Snowflake write failed: {e}")
 
     def write_weather_duration(df, epoch_id):
         """
