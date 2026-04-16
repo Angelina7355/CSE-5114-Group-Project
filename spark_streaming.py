@@ -130,10 +130,10 @@ if __name__ == "__main__":
         from_unixtime(col("data.timestamp")).cast("timestamp").alias("w_timestamp"),
         to_timestamp(col("data.ingestion_time")).alias("w_event_time"),
         col("data.weather").alias("weather_desc")
-    ).withWatermark("w_timestamp", "10 minutes")
+    ).withWatermark("w_event_time", "10 minutes")
 
     weather_stream = weather_stream.withColumn(
-        "w_minute", (col("w_timestamp").cast("long") / 60).cast("long")
+        "w_minute", (col("w_event_time").cast("long") / 60).cast("long")
     )
 
 
@@ -237,22 +237,18 @@ if __name__ == "__main__":
             return
         
         # Keep latest 100 incidents for table widget
-        latest_rows = (
-            batch_df.orderBy(col("t_start").desc())
-            .limit(100)
-            .toPandas()
-            .to_dict(orient="records")
-        )
-        redis_client.set("dashboard:recent_incidents", json.dumps(latest_rows), ex=300)
-
+        latest_rows = [
+            row.asDict(recursive=True)
+            for row in batch_df.orderBy(col("t_start").desc()).limit(100).collect()
+        ]
+        redis_client.set("dashboard:recent_incidents", json.dumps(latest_rows, default=str), ex=300)
+        
         # Incident count by weather for bar chart
-        counts = (
-            batch_df.groupBy("weather_desc")
-            .count()
-            .toPandas()
-            .to_dict(orient="records")
-        )
-        redis_client.set("dashboard:incident_counts", json.dumps(counts), ex=300)
+        counts_rows = [
+            row.asDict(recursive=True)
+            for row in batch_df.groupBy("weather_desc").count().collect()
+        ]
+        redis_client.set("dashboard:incident_counts", json.dumps(counts_rows, default=str), ex=300)
 
         redis_client.set("dashboard:last_update_ts", datetime.now(UTC).isoformat(), ex=300)
 
