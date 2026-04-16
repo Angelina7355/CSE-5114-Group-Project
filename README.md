@@ -30,18 +30,31 @@ HOW TO RUN (WINDOWS):
     $env:PATH="$env:HADOOP_HOME\bin;$env:PATH"<br>
     Remove-Item -Recurse -Force /tmp/spark_checkpoint<br>
     python .\spark_streaming.py<br>
+5. (Terminal 3) Open powershell and run:<br>
+    venv\Scripts\Activate.ps1<br>
+    python -m streamlit run .\redis_dashboard.py<br>
+6. Open dashboard in browser:<br>
+    http://localhost:8501
 <br>
 
 HOW TO RUN (MAC):
 ----------------------------------------------------------------------------------------
 1. cd into project folder
-2. Run:<br>docker-compose up -d
+2. Run:<br>docker compose up -d
 3. (Terminal 1) Run:<br>python3 api_ingestion.py
 4. (Terminal 2) Run<br>
 source venv/bin/activate<br>
 sudo rm -rf /tmp/spark_checkpoint<br>
 python3 spark_streaming.py<br>
+5. (Terminal 3) Run<br>
+source venv/bin/activate<br>
+python -m streamlit run redis_dashboard.py<br>
+6. Open dashboard in browser:<br>
+http://localhost:8501
 <br>
+
+NOTE: Redis is started by docker compose and used by redis_dashboard.py for live cache.
+If dashboard says "No Redis data yet", make sure api_ingestion.py and spark_streaming.py are both running.
 
 If you need to reset all the data in the pipeline and database to start from a clean slate:
 ----------------------------------------------------------------------------------------

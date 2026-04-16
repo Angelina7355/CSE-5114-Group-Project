@@ -9,6 +9,10 @@ from datetime import datetime, UTC
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
+import os
+import json
+import redis
+
 PROGRAM_START_TIME = datetime.now(UTC)
 
 
@@ -184,8 +188,6 @@ if __name__ == "__main__":
     #               Snowflake Configuration                #
     #------------------------------------------------------#
 
-    
-
     # ----- David's Credentials -----
     # pkb_string = get_private_key_string("rsa_key.p8")
     
@@ -210,21 +212,68 @@ if __name__ == "__main__":
         "sfRole": "TRAINING_ROLE",
         "pem_private_key": pkb_string
     }
+    
+    #------------------------------------------------------#
+    #                 Redis Configuration                  #
+    #------------------------------------------------------#
+
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
+        port=int(os.getenv("REDIS_PORT", "6379")),
+        decode_responses=True
+    )
+    
+    #------------------------------------------------------#
+    #         Redis Caching for Live Dashboard             #
+    #------------------------------------------------------#
+    
+    def write_dashboard_cache(batch_df):
+        """
+        Cache latest joined rows + weather counts for low-latency dashboard reads.
+        """
+        if batch_df.rdd.isEmpty():
+            return
+        
+        # Keep latest 100 incidents for table widget
+        latest_rows = (
+            batch_df.orderBy(col("t_start").desc())
+            .limit(100)
+            .toPandas()
+            .to_dict(orient="records")
+        )
+        redis_client.set("dashboard:recent_incidents", json.dumps(latest_rows), ex=300)
+
+        # Incident count by weather for bar chart
+        counts = (
+            batch_df.groupBy("weather_desc")
+            .count()
+            .toPandas()
+            .to_dict(orient="records")
+        )
+        redis_client.set("dashboard:incident_counts", json.dumps(counts), ex=300)
+
+        redis_client.set("dashboard:last_update_ts", datetime.now(UTC).isoformat(), ex=300)
 
     #------------------------------------------------------#
-    #               Write to Snowflake                     #
+    #                 Write to Snowflake                   #
     #------------------------------------------------------#
 
     def write_to_snowflake(df, epoch_id):
         """
         Writes each micro-batch to Snowflake using private key auth.
         """
+        if df.rdd.isEmpty():
+            return
+    
         df.write \
             .format("net.snowflake.spark.snowflake") \
             .options(**sf_options) \
             .option("dbtable", "weather_traffic_comb") \
             .mode("append") \
             .save()
+            
+        # Also push same batch to Redis for live dashboard
+        write_dashboard_cache(df)
 
     def write_weather_duration(df, epoch_id):
         """
