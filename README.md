@@ -32,7 +32,7 @@ HOW TO RUN (WINDOWS):
     python .\spark_streaming.py<br>
 5. (Terminal 3) Open powershell and run:<br>
     venv\Scripts\Activate.ps1<br>
-    python -m streamlit run .\redis_dashboard.py<br>
+    python -m streamlit run .\redis_and_historical_dashboard.py<br>
 6. Open dashboard in browser:<br>
     http://localhost:8501
 <br>
