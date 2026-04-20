@@ -23,8 +23,8 @@ def fetching_weather():
     Fetch CURRENT weather from OpenWeather.
     We only care about current conditions (real-time).
     """
-    lat = 38.6270 
-    lon = -90.1994
+    lat = 41.8781
+    lon = -87.6298
 
     url = (
         f"https://api.openweathermap.org/data/3.0/onecall?"
@@ -59,10 +59,9 @@ def fetching_incidents():
     Fetch traffic incidents from TomTom API using a configurable bounding box.
     """
 
-    # St louis center coordinates
-    lat = 38.6270
-    lon = -90.1994
-
+    # Chicago center coordinates
+    lat = 41.8781
+    lon = -87.6298
     # Controls how large the search area is
     bbox_offset = 0.5  # increase for more incidents (max is 0.5 based on testing)
 
@@ -97,8 +96,8 @@ def fetching_incidents():
         props = item.get("properties", {})
         geometry = item.get("geometry", {})
 
-        # if props.get("iconCategory") != 1:
-        #     continue
+        if props.get("iconCategory") not in [1,6,14]:
+            continue
 
         coords = geometry.get("coordinates", [])
         if not coords:
