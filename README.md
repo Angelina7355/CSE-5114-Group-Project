@@ -29,6 +29,7 @@ HOW TO RUN (WINDOWS):
     $env:HADOOP_HOME="C:\hadoop"<br>
     $env:PATH="$env:HADOOP_HOME\bin;$env:PATH"<br>
     Remove-Item -Recurse -Force /tmp/spark_checkpoint<br>
+    Remove-Item -Recurse -Force /tmp/spark_checkpoint_weather<br>
     python .\spark_streaming.py<br>
 5. (Terminal 3) Open powershell and run:<br>
     venv\Scripts\Activate.ps1<br>
