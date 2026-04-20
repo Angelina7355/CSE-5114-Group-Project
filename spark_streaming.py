@@ -191,29 +191,29 @@ if __name__ == "__main__":
     #------------------------------------------------------#
 
     # ----- David's Credentials -----
-    # pkb_string = get_private_key_string("rsa_key.p8")
-    
-    # sf_options = {
-    #     "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
-    #     "sfUser": "JELLYFISH",
-    #     "sfDatabase": "JELLYFISH_DB",
-    #     "sfSchema": "JELLYFISH_SCHEMA",
-    #     "sfWarehouse": "JELLYFISH_WH",
-    #     "pem_private_key": pkb_string
-    # }
-    
-    # ----- Angelina's Credentials -----
-    pkb_string = get_private_key_string("rsa_key.p8", password="Kaylee7355!")
+    pkb_string = get_private_key_string("rsa_key.p8")
     
     sf_options = {
         "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
-        "sfUser": "PIGEON",
-        "sfDatabase": "PIGEON_DB",
-        "sfSchema": "MY_SCHEMA",
-        "sfWarehouse": "PIGEON_WH",
-        "sfRole": "TRAINING_ROLE",
+        "sfUser": "JELLYFISH",
+        "sfDatabase": "JELLYFISH_DB",
+        "sfSchema": "JELLYFISH_SCHEMA",
+        "sfWarehouse": "JELLYFISH_WH",
         "pem_private_key": pkb_string
     }
+    
+    # ----- Angelina's Credentials -----
+    # pkb_string = get_private_key_string("rsa_key.p8", password="Kaylee7355!")
+    
+    # sf_options = {
+    #     "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
+    #     "sfUser": "PIGEON",
+    #     "sfDatabase": "PIGEON_DB",
+    #     "sfSchema": "MY_SCHEMA",
+    #     "sfWarehouse": "PIGEON_WH",
+    #     "sfRole": "TRAINING_ROLE",
+    #     "pem_private_key": pkb_string
+    # }
     
     #------------------------------------------------------#
     #                 Redis Configuration                  #
@@ -233,7 +233,7 @@ if __name__ == "__main__":
         """
         Cache latest joined rows + weather counts for low-latency dashboard reads.
         """
-        if batch_df.rdd.isEmpty():
+        if batch_df.count() == 0:
             return
         
         # Keep latest 100 incidents for table widget
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         """
         Writes each micro-batch to Snowflake using private key auth.
         """
-        if df.rdd.isEmpty():
+        if df.count() == 0:
             print(f"[Epoch {epoch_id}] joined batch empty")
             return
         

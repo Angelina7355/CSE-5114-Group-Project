@@ -63,12 +63,26 @@ def load_history_from_snowflake(limit=500):
             role=os.getenv("SNOWFLAKE_ROLE")
         )
 
+        # query = f"""
+        #     SELECT T_ID, T_START, WEATHER_DESC
+        #     FROM WEATHER_TRAFFIC_COMB
+        #     ORDER BY T_START DESC
+        #     LIMIT {limit}
+        # """
+        
+        #Ensures to get the table with unique T_ID
         query = f"""
             SELECT T_ID, T_START, WEATHER_DESC
-            FROM WEATHER_TRAFFIC_COMB
+            FROM (
+                SELECT T_ID, T_START, WEATHER_DESC,
+                       ROW_NUMBER() OVER (PARTITION BY T_ID ORDER BY T_START ASC) AS rownum
+                FROM WEATHER_TRAFFIC_COMB
+            )
+            WHERE rownum = 1
             ORDER BY T_START DESC
             LIMIT {limit}
         """
+
         df = pd.read_sql(query, conn)
         conn.close()
         return df, None
@@ -138,3 +152,57 @@ if sf_error:
 else:
     st.success(f"Loaded {len(history_df)} historical rows from Snowflake.")
     st.dataframe(history_df, use_container_width=True)
+
+st.divider()
+
+#------------------------------------------------------#
+#         Incident Rate by Weather (Snowflake)         #
+#------------------------------------------------------#
+
+@st.cache_data(ttl=60, show_spinner=False)
+def load_incident_rate_from_snowflake():
+    try:
+        with open(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"), "rb") as key_file:
+            passphrase = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE")
+            password_bytes = passphrase.encode() if passphrase else None
+            p_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=password_bytes,
+                backend=default_backend()
+            )
+        pkb = p_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        conn = snowflake.connector.connect(
+            user=os.getenv("SNOWFLAKE_USER"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            private_key=pkb,
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
+            schema=os.getenv("SNOWFLAKE_SCHEMA"),
+            role=os.getenv("SNOWFLAKE_ROLE")
+        )
+        query = """
+            SELECT
+                wd.WEATHER_DESC,
+                COUNT(DISTINCT wtc.T_ID) / NULLIF(COUNT(DISTINCT wd.W_TIMESTAMP), 0) AS INCIDENT_RATE
+            FROM WEATHER_DURATION wd
+            LEFT JOIN WEATHER_TRAFFIC_COMB wtc ON wd.WEATHER_DESC = wtc.WEATHER_DESC
+            GROUP BY wd.WEATHER_DESC
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df, None
+    except Exception as e:
+        return pd.DataFrame(), str(e)
+
+st.subheader("Incident Rate by Weather Condition (per minute)")
+rate_df, rate_error = load_incident_rate_from_snowflake()
+
+if rate_error:
+    st.error(f"Snowflake error: {rate_error}")
+else:
+    st.success(f"Loaded {len(rate_df)} rates from Snowflake.")
+    st.bar_chart(data=rate_df, x="WEATHER_DESC", y="INCIDENT_RATE", x_label="Weather Condition", y_label="Incidents per Minute")
