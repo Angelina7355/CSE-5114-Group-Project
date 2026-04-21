@@ -178,7 +178,7 @@ if __name__ == "__main__":
     "t_id",
     "t_start",
     "weather_desc"
-    )
+    ).filter(col("weather_desc").isNotNull())
 
     weather_count = weather_stream.select(
         "w_timestamp",
