@@ -145,9 +145,9 @@ if __name__ == "__main__":
         to_timestamp(col("data.ingestion_time")).alias("t_event_time")
     )
 
-    # Filter using ingestion time, not incident start time
+    # Filter using incident start time, not ingestion time
     traffic_stream = traffic_stream.filter(
-        col("t_event_time") >= program_start_time
+        col("t_start") >= program_start_time
     )
     
     traffic_stream = traffic_stream \
