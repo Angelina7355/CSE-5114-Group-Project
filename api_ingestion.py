@@ -54,6 +54,22 @@ def fetching_weather():
     }
 
 
+ICON_CATEGORY = {
+    0: "Unknown",
+    1: "Accident",
+    2: "Fog",
+    3: "Dangerous Conditions",
+    4: "Rain",
+    5: "Ice",
+    6: "Lane Closure",
+    7: "Road Closure",
+    8: "Road Closed",
+    9: "Road Works",
+    10: "Wind",
+    11: "Flooding",
+    14: "Broken Down Vehicle",
+}
+
 def fetching_incidents():
     """
     Fetch traffic incidents from TomTom API using a configurable bounding box.
@@ -98,7 +114,8 @@ def fetching_incidents():
 
         # if props.get("iconCategory") not in [1,6,14]:
         #     continue
-
+        if props.get("iconCategory") in [2,4,5,10,11]:
+            continue
         coords = geometry.get("coordinates", [])
         if not coords:
             continue
@@ -106,10 +123,11 @@ def fetching_incidents():
         lon_val, lat_val = coords[0]
 
         # Traffic JSON record
+        icn_cat = props.get("iconCategory")
         cleaned.append({
             "source": "traffic",
             "id": props.get("id"),
-            "type": props.get("iconCategory"),
+            "type": ICON_CATEGORY.get(icn_cat, f"Category {icn_cat}"),
             "severity": props.get("iconCategory"),
             "description": f"Category {props.get('iconCategory')}",
             "start_time": props.get("startTime"),

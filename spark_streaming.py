@@ -141,6 +141,7 @@ if __name__ == "__main__":
         from_json(col("value").cast("string"), traffic_schema).alias("data")
     ).select(
         col("data.id").alias("t_id"),
+        col("data.type").alias("t_type"),
         to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start"),
         to_timestamp(col("data.ingestion_time")).alias("t_event_time")
     )
@@ -176,6 +177,7 @@ if __name__ == "__main__":
 
     result = joined_stream.select(
     "t_id",
+    "t_type",
     "t_start",
     "weather_desc"
     ).filter(col("weather_desc").isNotNull())

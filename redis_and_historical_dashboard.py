@@ -72,9 +72,9 @@ def load_history_from_snowflake(limit=500):
         
         #Ensures to get the table with unique T_ID
         query = f"""
-            SELECT T_ID, T_START, WEATHER_DESC
+            SELECT T_ID, T_TYPE, T_START, WEATHER_DESC
             FROM (
-                SELECT T_ID, T_START, WEATHER_DESC,
+                SELECT T_ID, T_TYPE, T_START, WEATHER_DESC,
                        ROW_NUMBER() OVER (PARTITION BY T_ID ORDER BY T_START ASC) AS rownum
                 FROM WEATHER_TRAFFIC_COMB
             )
