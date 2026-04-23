@@ -72,12 +72,9 @@ def create_spark():
 weather_schema = StructType([
     StructField("source", StringType()),
     StructField("timestamp", LongType()),
-    StructField("temp", DoubleType()),
-    StructField("humidity", IntegerType()),
-    StructField("wind_speed", DoubleType()),
     StructField("weather", StringType()),
-    StructField("lat", DoubleType()),
-    StructField("lon", DoubleType()),
+    StructField("visibility", IntegerType()),
+    StructField("rain", DoubleType()),
     StructField("ingestion_time", StringType())
 ])
 
@@ -86,10 +83,7 @@ traffic_schema = StructType([
     StructField("id", StringType()),
     StructField("type", StringType()),
     StructField("severity", StringType()),
-    StructField("description", StringType()),
     StructField("start_time", StringType()),
-    StructField("lat", DoubleType()),
-    StructField("lon", DoubleType()),
     StructField("ingestion_time", StringType())
 ])
 
@@ -128,12 +122,13 @@ if __name__ == "__main__":
         from_json(col("value").cast("string"), weather_schema).alias("data")
     ).select(
         from_unixtime(col("data.timestamp")).cast("timestamp").alias("w_timestamp"),
-        to_timestamp(col("data.ingestion_time")).alias("w_event_time"),
-        col("data.weather").alias("weather_desc")
-    ).withWatermark("w_event_time", "10 minutes")
+        col("data.weather").alias("weather_desc"),
+        col("data.visibility").alias("visibility"),
+        col("data.rain").alias("rain")
+    ).withWatermark("w_timestamp", "10 minutes")
 
     weather_stream = weather_stream.withColumn(
-        "w_minute", (col("w_event_time").cast("long") / 60).cast("long")
+        "w_minute", (col("w_timestamp").cast("long") / 60).cast("long")
     )
 
 
@@ -142,6 +137,7 @@ if __name__ == "__main__":
     ).select(
         col("data.id").alias("t_id"),
         col("data.type").alias("t_type"),
+        col("data.severity").alias("t_severity"),
         to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start"),
         to_timestamp(col("data.ingestion_time")).alias("t_event_time")
     )
@@ -150,13 +146,13 @@ if __name__ == "__main__":
     traffic_stream = traffic_stream.filter(
         col("t_start") >= program_start_time
     )
-    
+
     traffic_stream = traffic_stream \
-        .withWatermark("t_event_time", "10 minutes") \
+        .withWatermark("t_start", "10 minutes") \
         .dropDuplicates(["t_id", "t_start"])
 
     traffic_stream = traffic_stream.withColumn(
-        "t_minute", (col("t_event_time").cast("long") / 60).cast("long")
+        "t_minute", (col("t_start").cast("long") / 60).cast("long")
     )
 
     #------------------------------------------------------#
@@ -167,24 +163,28 @@ if __name__ == "__main__":
         weather_stream,
         expr("""
             t_minute = w_minute AND
-            t_event_time BETWEEN w_event_time - interval 5 minutes
-            AND w_event_time + interval 5 minutes
+            t_start BETWEEN w_timestamp - interval 5 minutes
+            AND w_timestamp + interval 5 minutes
         """),
         how="leftOuter"
     )
 
-    joined_stream = joined_stream.dropDuplicates(["t_id", "t_event_time"])
+    joined_stream = joined_stream.dropDuplicates(["t_id", "t_start"])
 
     result = joined_stream.select(
-    "t_id",
-    "t_type",
-    "t_start",
-    "weather_desc"
+        "t_id",
+        "t_type",
+        "t_severity",
+        "t_start",
+        "weather_desc",
+        "visibility",
+        "rain"
     ).filter(col("weather_desc").isNotNull())
 
     weather_count = weather_stream.select(
         "w_timestamp",
-        "weather_desc"
+        "weather_desc",
+        "visibility"
     ).dropDuplicates(["w_timestamp"])
 
 

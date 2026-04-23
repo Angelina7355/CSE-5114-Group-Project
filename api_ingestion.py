@@ -40,16 +40,14 @@ def fetching_weather():
     data = response.json()
     current = data.get("current", {})
 
+    rain_data = current.get("rain", {})
     # Weather JSON record
     return {
         "source": "weather",
-        "timestamp": current.get("dt"), 
-        "temp": current.get("temp"),
-        "humidity": current.get("humidity"),
-        "wind_speed": current.get("wind_speed"),
+        "timestamp": current.get("dt"),
         "weather": current.get("weather", [{}])[0].get("main"),
-        "lat": lat,
-        "lon": lon,
+        "visibility": current.get("visibility"),
+        "rain": rain_data.get("1h", 0.0) if rain_data else 0.0,
         "ingestion_time": datetime.now(UTC).isoformat()
     }
 
@@ -68,6 +66,14 @@ ICON_CATEGORY = {
     10: "Wind",
     11: "Flooding",
     14: "Broken Down Vehicle",
+}
+
+MAGNITUDE_LABELS = {
+    0: "Unknown",
+    1: "Minor",
+    2: "Moderate",
+    3: "Major",
+    4: "Undefined",
 }
 
 def fetching_incidents():
@@ -92,7 +98,7 @@ def fetching_incidents():
         f"https://api.tomtom.com/traffic/services/5/incidentDetails"
         f"?key={TOMTOM_API_KEY}"
         f"&bbox={bbox}"
-        f"&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,startTime,endTime}}}}}}"
+        f"&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,magnitudeOfDelay,startTime,endTime}}}}}}"
         f"&language=en-US"
         f"&timeValidityFilter=present"
     )
@@ -120,19 +126,15 @@ def fetching_incidents():
         if not coords:
             continue
 
-        lon_val, lat_val = coords[0]
-
         # Traffic JSON record
         icn_cat = props.get("iconCategory")
+        mag = props.get("magnitudeOfDelay")
         cleaned.append({
             "source": "traffic",
             "id": props.get("id"),
             "type": ICON_CATEGORY.get(icn_cat, f"Category {icn_cat}"),
-            "severity": props.get("iconCategory"),
-            "description": f"Category {props.get('iconCategory')}",
+            "severity": MAGNITUDE_LABELS.get(mag, "Unknown"),
             "start_time": props.get("startTime"),
-            "lat": lat_val,
-            "lon": lon_val,
             "ingestion_time": datetime.now(UTC).isoformat()
         })
 

@@ -71,9 +71,9 @@ def load_history_from_snowflake(limit=500):
         
         #Ensures to get the table with unique T_ID
         query = f"""
-            SELECT T_ID, T_TYPE, T_START, WEATHER_DESC
+            SELECT T_ID, T_TYPE, T_SEVERITY, T_START, WEATHER_DESC, VISIBILITY, RAIN
             FROM (
-                SELECT T_ID, T_TYPE, T_START, WEATHER_DESC,
+                SELECT T_ID, T_TYPE, T_SEVERITY, T_START, WEATHER_DESC, VISIBILITY, RAIN,
                        ROW_NUMBER() OVER (PARTITION BY T_ID ORDER BY T_START ASC) AS rownum
                 FROM WEATHER_TRAFFIC_COMB
             )
@@ -204,3 +204,146 @@ if rate_error:
 else:
     st.success(f"Loaded {len(rate_df)} rates from Snowflake.")
     st.bar_chart(data=rate_df, x="WEATHER_DESC", y="INCIDENT_RATE", x_label="Weather Condition", y_label="Incidents per Minute")
+
+st.divider()
+
+#------------------------------------------------------#
+#      Severity Distribution by Weather (Snowflake)    #
+#------------------------------------------------------#
+
+def load_severity_by_weather():
+    try:
+        with open(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"), "rb") as key_file:
+            passphrase = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE")
+            password_bytes = passphrase.encode() if passphrase else None
+            p_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=password_bytes,
+                backend=default_backend()
+            )
+        pkb = p_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        conn = snowflake.connector.connect(
+            user=os.getenv("SNOWFLAKE_USER"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            private_key=pkb,
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
+            schema=os.getenv("SNOWFLAKE_SCHEMA"),
+            role=os.getenv("SNOWFLAKE_ROLE")
+        )
+        query = """
+            SELECT WEATHER_DESC, T_SEVERITY, COUNT(DISTINCT T_ID) AS INCIDENT_COUNT
+            FROM WEATHER_TRAFFIC_COMB
+            WHERE T_SEVERITY IS NOT NULL AND WEATHER_DESC IS NOT NULL
+            GROUP BY WEATHER_DESC, T_SEVERITY
+            ORDER BY WEATHER_DESC, T_SEVERITY
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df, None
+    except Exception as e:
+        return pd.DataFrame(), str(e)
+
+st.subheader("Incident Severity by Weather Condition")
+sev_df, sev_error = load_severity_by_weather()
+
+if sev_error:
+    st.error(f"Snowflake error: {sev_error}")
+elif sev_df.empty:
+    st.warning("No severity data yet.")
+else:
+    pivot = sev_df.pivot_table(
+        index="WEATHER_DESC",
+        columns="T_SEVERITY",
+        values="INCIDENT_COUNT",
+        aggfunc="sum",
+        fill_value=0
+    ).reset_index()
+    pivot.columns.name = None
+    st.bar_chart(pivot, x="WEATHER_DESC")
+
+st.divider()
+
+#------------------------------------------------------#
+#       Incident Rate by Visibility Range (Snowflake)  #
+#------------------------------------------------------#
+
+def load_incident_rate_by_visibility():
+    try:
+        with open(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"), "rb") as key_file:
+            passphrase = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE")
+            password_bytes = passphrase.encode() if passphrase else None
+            p_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=password_bytes,
+                backend=default_backend()
+            )
+        pkb = p_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        conn = snowflake.connector.connect(
+            user=os.getenv("SNOWFLAKE_USER"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            private_key=pkb,
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
+            schema=os.getenv("SNOWFLAKE_SCHEMA"),
+            role=os.getenv("SNOWFLAKE_ROLE")
+        )
+        query = """
+            WITH bucketed_duration AS (
+                SELECT
+                    CASE
+                        WHEN VISIBILITY < 2000  THEN 'Poor (0-2km)'
+                        WHEN VISIBILITY < 5000  THEN 'Moderate (2-5km)'
+                        WHEN VISIBILITY < 10000 THEN 'Good (5-10km)'
+                        ELSE                         'Clear (10km+)'
+                    END AS VIS_RANGE,
+                    COUNT(DISTINCT W_TIMESTAMP) AS MINUTE_COUNT
+                FROM WEATHER_DURATION
+                WHERE VISIBILITY IS NOT NULL
+                GROUP BY VIS_RANGE
+            ),
+            bucketed_incidents AS (
+                SELECT
+                    CASE
+                        WHEN VISIBILITY < 2000  THEN 'Poor (0-2km)'
+                        WHEN VISIBILITY < 5000  THEN 'Moderate (2-5km)'
+                        WHEN VISIBILITY < 10000 THEN 'Good (5-10km)'
+                        ELSE                         'Clear (10km+)'
+                    END AS VIS_RANGE,
+                    COUNT(DISTINCT T_ID) AS INCIDENT_COUNT
+                FROM WEATHER_TRAFFIC_COMB
+                WHERE VISIBILITY IS NOT NULL
+                GROUP BY VIS_RANGE
+            )
+            SELECT
+                d.VIS_RANGE,
+                COALESCE(bi.INCIDENT_COUNT, 0) / NULLIF(d.MINUTE_COUNT, 0) AS INCIDENT_RATE
+            FROM bucketed_duration d
+            LEFT JOIN bucketed_incidents bi ON d.VIS_RANGE = bi.VIS_RANGE
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        order = {"Poor (0-2km)": 0, "Moderate (2-5km)": 1, "Good (5-10km)": 2, "Clear (10km+)": 3}
+        df["sort"] = df["VIS_RANGE"].map(order)
+        df = df.sort_values("sort").drop(columns="sort")
+        return df, None
+    except Exception as e:
+        return pd.DataFrame(), str(e)
+
+st.subheader("Incident Rate by Visibility Range (per minute)")
+vis_df, vis_error = load_incident_rate_by_visibility()
+
+if vis_error:
+    st.error(f"Snowflake error: {vis_error}")
+elif vis_df.empty:
+    st.warning("No visibility data yet.")
+else:
+    st.bar_chart(data=vis_df, x="VIS_RANGE", y="INCIDENT_RATE", x_label="Visibility Range", y_label="Incidents per Minute")
