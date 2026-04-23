@@ -35,7 +35,6 @@ def load_from_redis():
     return incidents_df, counts_df, last_update, None
 
 
-@st.cache_data(ttl=60, show_spinner=False) # Snowflake updates every minute rather than every 2 seconds like the rest of the page
 def load_history_from_snowflake(limit=500):
     try:
         with open(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"), "rb") as key_file:
@@ -95,8 +94,8 @@ def load_history_from_snowflake(limit=500):
 
 st.title("Live Weather and Traffic Incidents in St. Louis, MO")
 st.write("Displays traffic incidents based on weather in near real time.")
-st_autorefresh(interval=2000, key="redis_auto_refresh")
-st.caption("Auto-refreshing every 2 seconds for live updates.")
+st_autorefresh(interval=60000, key="redis_auto_refresh")
+st.caption("Auto-refreshing every 60 seconds.")
 
 st.subheader("Live Redis Cache (Recent Window)")
 incidents_df, counts_df, last_update, redis_error = load_from_redis()
@@ -128,7 +127,7 @@ st.divider()
 #------------------------------------------------------#
 
 st.subheader("Historical Data from Snowflake")
-st.caption("Refreshed every 60 seconds (cached).")
+st.caption("Refreshed every 60 seconds.")
 
 history_df, sf_error = load_history_from_snowflake(limit=1000)
 
@@ -159,7 +158,6 @@ st.divider()
 #         Incident Rate by Weather (Snowflake)         #
 #------------------------------------------------------#
 
-@st.cache_data(ttl=60, show_spinner=False)
 def load_incident_rate_from_snowflake():
     try:
         with open(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"), "rb") as key_file:
