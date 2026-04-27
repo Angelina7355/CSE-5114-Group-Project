@@ -43,7 +43,6 @@ def fetching_weather():
     rain_data = current.get("rain", {})
     # Weather JSON record
     return {
-        "source": "weather",
         "timestamp": current.get("dt"),
         "weather": current.get("weather", [{}])[0].get("main"),
         "visibility": current.get("visibility"),
@@ -98,14 +97,12 @@ def fetching_incidents():
         f"https://api.tomtom.com/traffic/services/5/incidentDetails"
         f"?key={TOMTOM_API_KEY}"
         f"&bbox={bbox}"
-        f"&fields={{incidents{{properties{{id,iconCategory,magnitudeOfDelay,startTime,endTime}}}}}}"
+        f"&fields={{incidents{{properties{{id,iconCategory,magnitudeOfDelay,startTime}}}}}}"
         f"&language=en-US"
         f"&timeValidityFilter=present"
     )
 
     response = requests.get(url)
-
-    print("TomTom response:", response.text)
 
     if response.status_code != 200:
         raise Exception(f"TomTom API failed: {response.status_code}")
@@ -117,15 +114,12 @@ def fetching_incidents():
     for item in data.get("incidents", []):
         props = item.get("properties", {})
 
-        # if props.get("iconCategory") not in [1,6,14]:
-        #     continue
-        if props.get("iconCategory") in [2,4,5,10,11]:
+        if props.get("iconCategory") in [2, 4, 5, 10, 11]:
             continue
         # Traffic JSON record
         icn_cat = props.get("iconCategory")
         mag = props.get("magnitudeOfDelay")
         cleaned.append({
-            "source": "traffic",
             "id": props.get("id"),
             "type": ICON_CATEGORY.get(icn_cat, f"Category {icn_cat}"),
             "severity": MAGNITUDE_LABELS.get(mag, "Unknown"),

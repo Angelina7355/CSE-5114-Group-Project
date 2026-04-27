@@ -70,7 +70,6 @@ def create_spark():
 #----------------------------------------------------------#
 
 weather_schema = StructType([
-    StructField("source", StringType()),
     StructField("timestamp", LongType()),
     StructField("weather", StringType()),
     StructField("visibility", IntegerType()),
@@ -79,7 +78,6 @@ weather_schema = StructType([
 ])
 
 traffic_schema = StructType([
-    StructField("source", StringType()),
     StructField("id", StringType()),
     StructField("type", StringType()),
     StructField("severity", StringType()),
@@ -138,8 +136,7 @@ if __name__ == "__main__":
         col("data.id").alias("t_id"),
         col("data.type").alias("t_type"),
         col("data.severity").alias("t_severity"),
-        to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start"),
-        to_timestamp(col("data.ingestion_time")).alias("t_event_time")
+        to_timestamp(col("data.start_time"), "yyyy-MM-dd'T'HH:mm:ssX").alias("t_start")
     )
 
     # Filter using incident start time, not ingestion time
@@ -262,11 +259,11 @@ if __name__ == "__main__":
         """
         Writes each micro-batch to Snowflake using private key auth.
         """
-        if df.count() == 0:
+        batch_rows = df.count()
+        if batch_rows == 0:
             print(f"[Epoch {epoch_id}] joined batch empty")
             return
         
-        batch_rows = df.count()
         print(f"[Epoch {epoch_id}] joined rows: {batch_rows}")
 
         # Update Redis first for live dashboard responsiveness
