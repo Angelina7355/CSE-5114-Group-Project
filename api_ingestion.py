@@ -98,7 +98,7 @@ def fetching_incidents():
         f"https://api.tomtom.com/traffic/services/5/incidentDetails"
         f"?key={TOMTOM_API_KEY}"
         f"&bbox={bbox}"
-        f"&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,magnitudeOfDelay,startTime,endTime}}}}}}"
+        f"&fields={{incidents{{properties{{id,iconCategory,magnitudeOfDelay,startTime,endTime}}}}}}"
         f"&language=en-US"
         f"&timeValidityFilter=present"
     )
@@ -116,16 +116,11 @@ def fetching_incidents():
 
     for item in data.get("incidents", []):
         props = item.get("properties", {})
-        geometry = item.get("geometry", {})
 
         # if props.get("iconCategory") not in [1,6,14]:
         #     continue
         if props.get("iconCategory") in [2,4,5,10,11]:
             continue
-        coords = geometry.get("coordinates", [])
-        if not coords:
-            continue
-
         # Traffic JSON record
         icn_cat = props.get("iconCategory")
         mag = props.get("magnitudeOfDelay")
