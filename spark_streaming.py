@@ -202,7 +202,8 @@ if __name__ == "__main__":
     }
     
     # ----- Angelina's Credentials -----
-    # pkb_string = get_private_key_string("rsa_key.p8", password="Kaylee7355!")
+    # password = os.getenv("MY_PASSWORD")
+    # pkb_string = get_private_key_string("rsa_key.p8", password=password)
     
     # sf_options = {
     #     "sfURL": "sfedu02-unb02139.snowflakecomputing.com",
