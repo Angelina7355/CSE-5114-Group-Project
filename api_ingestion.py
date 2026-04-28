@@ -68,7 +68,7 @@ ICON_CATEGORY = {
 }
 
 MAGNITUDE_LABELS = {
-    0: "Unknown",
+    0: "Undefined",
     1: "Minor",
     2: "Moderate",
     3: "Major",

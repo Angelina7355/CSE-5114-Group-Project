@@ -9,7 +9,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from dotenv import load_dotenv
 load_dotenv()
-import time
 
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST", "localhost"),
@@ -61,13 +60,6 @@ def load_history_from_snowflake(limit=500):
             schema=os.getenv("SNOWFLAKE_SCHEMA"),
             role=os.getenv("SNOWFLAKE_ROLE")
         )
-
-        # query = f"""
-        #     SELECT T_ID, T_START, WEATHER_DESC
-        #     FROM WEATHER_TRAFFIC_COMB
-        #     ORDER BY T_START DESC
-        #     LIMIT {limit}
-        # """
         
         #Ensures to get the table with unique T_ID
         query = f"""
@@ -130,21 +122,6 @@ st.subheader("Historical Data from Snowflake")
 st.caption("Refreshed every 60 seconds.")
 
 history_df, sf_error = load_history_from_snowflake(limit=1000)
-
-# if sf_error:
-#     st.error(f"Snowflake error: {sf_error}")
-# else:
-#     st.success(f"Loaded {len(history_df)} historical rows from Snowflake.")
-#     st.dataframe(history_df, use_container_width=True)
-
-#     if not history_df.empty and "WEATHER_DESC" in history_df.columns:
-#         hist_counts = (
-#             history_df.groupby("WEATHER_DESC")
-#             .size()
-#             .reset_index(name="INCIDENT_COUNT")
-#         )
-#         st.markdown("Incidents by Weather Condition (Historical)")
-#         st.bar_chart(hist_counts, x="WEATHER_DESC", y="INCIDENT_COUNT")
 
 if sf_error:
     st.error(f"Snowflake error: {sf_error}")
